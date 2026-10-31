@@ -2224,8 +2224,31 @@ function resolveInputPath(path, cwd = process.cwd()) {
 // blocks, instead of throwing.
 const MAX_SOURCE_LOOKUP_LENGTH = 500;
 
-/** Check a normalized fact as a complete token or phrase, not a substring. */
+// The glyphs normalizeTextForATS in generate-pdf.mjs rewrites. The gate reads the
+// rewritten document and cv.md keeps the original, so a title copied verbatim
+// with an arrow or a dash in it read as unsourced.
+function foldAtsGlyphs(text) {
+  return text
+    .replace(/[\u2014\u2013]/g, '-')
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/\s*\u2192\s*/g, ' to ')
+    .replace(/\s*\u2190\s*/g, ' from ')
+    .replace(/\s*[\u2191\u2193]\s*/g, ' ')
+    .replace(/(?<![lL])\s*\u00B7\s*|\s*\u00B7\s*(?![lL])|\s+\u00B7\s*|\s*\u00B7\s+/g, ' | ')
+    .replace(/\s*\u2022\s*/g, ' | ');
+}
+
+/**
+ * Check a normalized fact as a complete token or phrase, not a substring. The
+ * verbatim text is tried first: folding "Acme\u2014Staff Engineer" joins the
+ * words with a hyphen, which is not a token boundary.
+ */
 function sourceContainsFact(sourceText, value) {
+  return sourceSpellsFact(sourceText, value) || sourceSpellsFact(foldAtsGlyphs(sourceText), foldAtsGlyphs(value));
+}
+
+function sourceSpellsFact(sourceText, value) {
   if (value.length > MAX_SOURCE_LOOKUP_LENGTH) return false;
   const escaped = value
     .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
