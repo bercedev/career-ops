@@ -851,6 +851,15 @@ try {
   } else {
     fail(`title after an unspaced dash read as unsourced: ${JSON.stringify(glued)}`);
   }
+  writeFileSync(atsSource, '### Certification\u2014AWS Certified Developer \u2013 Associate\n');
+  const gluedAndFolded = verifyFacts('<div class="job-role">AWS Certified Developer - Associate</div>', {
+    sourcePaths: [atsSource], configPath: config,
+  }).advisoryFacts;
+  if (gluedAndFolded.length === 0) {
+    pass('an unspaced dash still separates a title that needs folding');
+  } else {
+    fail(`folded title after an unspaced dash read as unsourced: ${JSON.stringify(gluedAndFolded)}`);
+  }
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
